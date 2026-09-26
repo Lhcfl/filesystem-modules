@@ -14,7 +14,7 @@ to `foo.bar`, `a.nix` to `a`.
   inputs = {
     nixpkgs-lib.url = "github:nix-community/nixpkgs.lib";
     filesystem-modules.url = "github:Lhcfl/filesystem-modules";
-    filesystem-modules.nixpkgs-lib.follows = "nixpkgs-lib";
+    filesystem-modules.inputs.nixpkgs-lib.follows = "nixpkgs-lib";
   };
 
   outputs = { nixpkgs-lib, filesystem-modules, ... }:
