@@ -25,7 +25,29 @@ let
 
   applyFilter = builtins.filter filter allfiles;
 
-  normalize = mod: if ((mod ? config) || (mod ? options)) then mod else { config = mod; };
+  normalize =
+    mod:
+    let
+      checks = [
+        "_class"
+        "_file"
+        "key"
+        "disabledModules"
+        "imports"
+        "options"
+        "config"
+        "meta"
+        "freeformType"
+        "_class"
+        "_file"
+        "key"
+        "disabledModules"
+        "require"
+        "imports"
+        "freeformType"
+      ];
+    in
+    if (lib.any (k: mod ? ${k}) checks) then mod else { config = mod; };
 
   resolve =
     { path, file }:
