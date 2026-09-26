@@ -25,35 +25,42 @@ let
 
   applyFilter = builtins.filter filter allfiles;
 
+  normalize = mod: if ((mod ? config) || (mod ? options)) then mod else { config = mod; };
+
   resolve =
     { path, file }:
     let
       sourceModule = import file;
-      originalFunctionArgs = lib.functionArgs sourceModule;
+      sourceModuleFunction =
+        if builtins.typeOf sourceModule == "lambda" then sourceModule else _: sourceModule;
+      originalFunctionArgs = lib.functionArgs sourceModuleFunction;
       neededFunctionArgs = (removeAttrs originalFunctionArgs [ "this" ]) // {
         config = false;
       };
       withPath =
         data: if data == null then { } else lib.foldr (cur: acc: { ${cur} = acc; }) data (base ++ path);
     in
-    lib.setFunctionArgs (
-      args@{ config, ... }:
-      let
-        this = {
-          inherit file path;
-          cfg = builtins.foldl' (c: key: c.${key}) config (base ++ path);
-        };
+    lib.setDefaultModuleLocation file (
+      lib.setFunctionArgs (
+        args@{ config, ... }:
+        let
+          this = {
+            inherit file path;
+            config = builtins.foldl' (c: key: c.${key}) config (base ++ path);
+            options = defination.options;
+          };
 
-        result = sourceModule (args // { inherit this; });
-        removed = removeAttrs result [ "this" ];
-        defination = result.this or { };
-        optionsAppended = lib.recursiveUpdate removed {
-          options = withPath defination.options or null;
-        };
-        ret = optionsAppended;
-      in
-      ret
-    ) neededFunctionArgs;
+          result = sourceModuleFunction (args // { inherit this; });
+          removed = removeAttrs result [ "this" ];
+          defination = result.this or { };
+          optionsAppended = lib.recursiveUpdate (normalize removed) {
+            options = withPath defination.options or null;
+          };
+          ret = optionsAppended;
+        in
+        ret
+      ) neededFunctionArgs
+    );
 in
 {
   imports = (map resolve applyFilter);
