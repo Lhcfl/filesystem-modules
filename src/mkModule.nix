@@ -28,7 +28,7 @@ let
   resolve =
     { path, file }:
     let
-      sourceModule = builtins.trace { inherit path file; } import file;
+      sourceModule = import file;
       originalFunctionArgs = lib.functionArgs sourceModule;
       neededFunctionArgs = (removeAttrs originalFunctionArgs [ "this" ]) // {
         config = false;
