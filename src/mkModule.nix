@@ -3,6 +3,7 @@
   directory,
   base ? [ ],
   filter ? ({ path, ... }: !(lib.any (lib.hasPrefix "_") path)),
+  recursive ? true,
   ...
 }:
 let
@@ -12,13 +13,25 @@ let
       items = lib.attrsets.attrsToList (builtins.readDir dir);
       files = builtins.filter ({ name, value }: value == "regular" && lib.hasSuffix ".nix" name) items;
       dirs = builtins.filter ({ value, ... }: value == "directory") items;
+      dirsWhichHasDefaultDotNix = builtins.filter (
+        name: builtins.pathExists dir + /${name}/default.nix
+      ) dirs;
+
+      mk = map (
+        { name, ... }: {
+          path = base ++ [ (lib.removeSuffix ".nix" name) ];
+          file = dir + /${name};
+        }
+      );
     in
     [
-      (map ({ name, ... }: {
-        path = base ++ [ (lib.removeSuffix ".nix" name) ];
-        file = dir + /${name};
-      }) files)
-      (map ({ name, ... }: listFiles (base ++ [ name ]) (dir + /${name})) dirs)
+      (mk files)
+      (
+        if recursive then
+          (map ({ name, ... }: listFiles (base ++ [ name ]) (dir + /${name})) dirs)
+        else
+          mk dirsWhichHasDefaultDotNix
+      )
     ];
 
   allfiles = lib.flatten (listFiles [ ] directory);
